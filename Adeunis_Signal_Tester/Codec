@@ -1,0 +1,105 @@
+// Decode uplink function.
+  //
+  // Input is an object with the following fields:
+  // - bytes = Byte array containing the uplink payload, e.g. [255, 230, 255, 0]
+  // - fPort = Uplink fPort.
+  // - variables = Object containing the configured device variables.
+  //
+  // Output must be an object with the following fields:
+  // - data = Object representing the decoded payload.
+function decodeUplink(input) { 
+  var data = {};
+
+  var offset = 0;
+
+  if (offset + 1 <= input.bytes.length) {
+    var status = input.bytes[offset++]; // bitmask indicating the presence of the other fields
+    if (status & 0x8f && offset + 1 < input.bytes.length) {
+      // Temperature information (degree Celsius)
+      var temperature = input.bytes[offset];
+      if (temperature > 127) {
+        temperature = temperature - 256;
+      }
+      data.temperatureC = temperature;
+	  data.temperatureF = (temperature * 1.8) + 32;
+      offset += 1;
+    }
+    if (status & 0x40) {
+    // Transmission triggered by the accelerometer
+    data.trigger = "Accelerometer";
+    }
+    if (status & 0x20) {
+    // Transmission triggered by the accelerometer
+      data.trigger = "Pushbutton";
+    }
+    if (status & 0x10 && offset + 9 <= input.bytes.length) {
+      // GPS information
+      var latDeg10   = input.bytes[offset] >> 4;
+      var latDeg1    = input.bytes[offset] & 0x0f;
+      var latMin10   = input.bytes[offset + 1] >> 4;
+      var latMin1    = input.bytes[offset + 1] & 0x0f;
+      var latMin01   = input.bytes[offset + 2] >> 4;
+      var latMin001  = input.bytes[offset + 2] & 0x0f;
+      var latMin0001 = input.bytes[offset + 3] >> 4;
+      var latSign    = input.bytes[offset + 3] & 0x01 ? -1 : 1;
+      var latitude = latSign * (latDeg10 * 10 + latDeg1 + (latMin10 * 10 + latMin1 + latMin01 * 0.1 + latMin001 * 0.01 + latMin0001 * 0.001) / 60);
+      var lonDeg100 = input.bytes[offset + 4] >> 4;
+      var lonDeg10  = input.bytes[offset + 4] & 0x0f;
+      var lonDeg1   = input.bytes[offset + 5] >> 4;
+      var lonMin10  = input.bytes[offset + 5] & 0x0f;
+      var lonMin1   = input.bytes[offset + 6] >> 4;
+      var lonMin01  = input.bytes[offset + 6] & 0x0f;
+      var lonMin001 = input.bytes[offset + 7] >> 4;
+      var lonSign   = input.bytes[offset + 7] & 0x01 ? -1 : 1;
+      var longitude = lonSign * (lonDeg100 * 100 + lonDeg10 * 10 + lonDeg1 + (lonMin10 * 10 + lonMin1 + lonMin01 * 0.1 + lonMin001 * 0.01) / 60);
+      data.altitude = 0; // altitude information not available
+      data.satellites = input.bytes[offset + 8] & 0x0f; // number of satellites
+      data.location = "("+latitude+","+longitude+")";
+      data.latitude = latitude;
+      data.longitude = longitude;
+      offset += 9;
+    }
+	if (status & 0x08 && offset + 1 <= input.bytes.length) {
+      // Uplink frame counter
+      data.uplink = input.bytes[offset];
+      offset += 1;
+    }
+    if (status & 0x04 && offset + 1 <= input.bytes.length) {
+      // Downlink frame counter
+      data.downlink = input.bytes[offset];
+      offset += 1;
+    }
+    if (status & 0x02 && offset + 2 <= input.bytes.length) {
+      // Battery level information (mV)
+      data.battery = (input.bytes[offset] << 8 | input.bytes[offset + 1])/1000;
+      offset += 2;
+    }
+    if (status & 0x01 && offset + 2 <= input.bytes.length) {
+      // RSSI (dBm) and SNR (dB) information
+      data.rssi = - input.bytes[offset];
+      var snr = input.bytes[offset + 1];
+      if (snr > 127) {
+        snr = snr - 256;
+      }
+      data.snr = snr;
+      offset += 2;
+    }
+
+  }
+
+    return {
+      data: data,
+      };
+  }
+
+
+  // Encode downlink function.
+  //
+  // Input is an object with the following fields:
+  // - data = Object representing the payload that must be encoded.
+  // - variables = Object containing the configured device variables.
+  //
+  // Output must be an object with the following fields:
+  // - bytes = Byte array containing the downlink payload.
+
+  
