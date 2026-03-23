@@ -1,0 +1,118 @@
+// Decode decodes an array of bytes into an object.
+//  - fPort contains the LoRaWAN fPort number
+//  - bytes is an array of bytes, e.g. [225, 230, 255, 0]
+//  - variables contains the device variables e.g. {"calibration": "3.5"} (both the key / value are of type string)
+// The function must return an object, e.g. {"temperature": 22.5}
+
+
+function decodeUplink(input) {
+    var data = input.bytes;
+    var valid = true;
+
+    if (typeof Decoder === "function") {
+        data = Decoder(data, input.fPort);
+    }
+
+    if (typeof Converter === "function") {
+        data = Converter(data, input.fPort);
+    }
+
+    if (typeof Validator === "function") {
+        valid = Validator(data, input.fPort);
+    }
+
+    if (valid) {
+        return {
+            data: data
+        };
+    } else {
+        return {
+            data: {},
+            errors: ["Invalid data received"]
+        };
+    }
+}
+  
+  
+
+function Decode(fPort, bytes) 
+{
+
+  function decodeUnit(bytes, index) {
+    var unit = '';
+    switch (bytes[index++]) {
+      case 0: unit = 'Vol%'; break;
+      case 1: unit = 'ppm'; break;
+    }
+    return unit;
+  }
+  
+  function decodeMeasuredValue(bytes, index) {
+    return ((bytes[index++] << 8) + bytes[index++]);
+  }
+  function decodeText(bytes, startIndex, endIndex) {
+    return String.fromCharCode.apply(null, bytes.slice(startIndex, endIndex)).trim();
+  }
+
+  function decodeFloat(bytes, startIndex, endIndex) {
+    return parseFloat(convertBytesToFloat(bytes.slice(startIndex, endIndex)).toFixed(4));
+  }
+
+  function convertBytesToFloat(bytes) {
+    var bits = (bytes[3] << 24) | (bytes[2] << 16) | (bytes[1] << 8) | bytes[0];
+    var sign = (bits >>> 31 === 0) ? 1.0 : -1.0;
+    var exp  = (bits >>> 23) & 0xff;
+    var mant = (exp === 0) ? ((bits & 0x7fffff) << 1) : ((bits & 0x7fffff) | 0x800000);
+    var fVal = (sign * mant * Math.pow(2, exp - 150));
+    return fVal;
+  }
+  
+  
+  // Periodic measurements
+  var index = 2;
+  var length = bytes.length;//27
+
+    if(fPort == 0x02){
+    //var TYPE_SUPPLY_VOLTAGE =decodeMeasuredValue(bytes, 0);
+            //if (TYPE_SUPPLY_VOLTAGE > 32767) {
+              //TYPE_SUPPLY_VOLTAGE -= 65536;
+            //}
+      
+      var TYPE_TEMPERATURE =decodeMeasuredValue(bytes, 14);
+            if (TYPE_TEMPERATURE > 32767) {
+              TYPE_TEMPERATURE -= 65536;
+            }
+       
+    	var TYPE_HUMIDITY =decodeMeasuredValue(bytes, 18);
+            //if (TYPE_TEMPERATURE > 32767) {
+              //TYPE_TEMPERATURE -= 65536;
+            //}
+      
+     //var TYPE_AIR_PRESSURE =decodeMeasuredValue(bytes, 22);
+      
+        var gas = {};
+        gas.value = decodeFloat(bytes, index, index += 4);
+        gas.unit = decodeUnit(bytes, index, index += 1);
+        gas.name = decodeText(bytes, index, index += 4);
+        
+        
+        //var TYPE_TEMPERATURE = 15;
+        //var TYPE_HUMIDITY = 20;
+        //var TYPE_AIR_PRESSURE = 25;
+        var TYPE_METRICS = gas;
+        //var TYPE_DEVICE = 35;
+        
+      
+    var decoded =
+       { 
+			//TYPE_SUPPLY_VOLTAGE:TYPE_SUPPLY_VOLTAGE/ 100.0,     
+			TYPE_TEMPERATURE:TYPE_TEMPERATURE / 10,
+			TYPE_HUMIDITY:TYPE_HUMIDITY * 2 / 1000,
+			//TYPE_AIR_PRESSURE:1469 - 0.0078125 * TYPE_AIR_PRESSURE,
+			TYPE_METRICS:TYPE_METRICS,
+			//TYPE_DEVICE:TYPE_DEVICE,
+        };
+    return decoded;
+   }
+}
+    
