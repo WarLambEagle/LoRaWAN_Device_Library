@@ -2,3 +2,5 @@ Region: US915
 Region Configuration:
 MAC Version: LoRaWAN 1.0.2
 Regional parameters revision: A
+
+Note: Comes from the factory configured for Sub-band 1. Can be reprogrmmed to Sub-band 0
