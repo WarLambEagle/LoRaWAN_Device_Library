@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<standard_dict>
+    <vendor id="00000103" name="MOBREY"/>
+    <vendor id="0000012C" name="KROHNE"/>
+    <vendor id="0000014D" name="Rockwell Automation"/>
+    <vendor id="000001BF" name="Valmet Automation"/>
+    <vendor id="000001F4" name="R. STAHL SCHALTGERAETE"/>
+    <vendor id="00000302" name="SMAR"/>
+    <vendor id="00000309" name="Fuji Electric Co., Ltd."/>
+    <vendor id="000003E8" name="SHIP STAR"/>
+    <vendor id="00001151" name="Rosemount Inc."/>
+    <vendor id="000022B8" name="HuaKong Technology"/>
+    <vendor id="00004649" name="Fieldbus Inc."/>
+    <vendor id="00005100" name="Fisher Controls"/>
+    <vendor id="00014A7E" name="VALTEK INTERNATIONAL"/>
+    <vendor id="000BE0EC" name="MTL Instruments"/>
+    <vendor id="000DFC96" name="Yamatake Corporation"/>
+    <vendor id="001E6D11" name="Softing AG"/>
+    <vendor id="00385884" name="The Foxboro Company"/>
+    <vendor id="0041524D" name="Armstrong">
+        <model id="0001" name="Steam Trap Montr"/>
+    </vendor>
+    <vendor id="00000001" name="Cisco">
+      <model id="4014" name="LoRAWAN Gateway"/>
+    </vendor>
+    <vendor id="00000002" name="TWTG">
+        <model id="0001" name="VS_QT" loradev="1"/>	
+        <model id="0002" name="TS" loradev="1"/>
+        <model id="0003" name="DS_TT" loradev="1"/>
+        <model id="0004" name="DS_LD" loradev="1"/>
+        <model id="4012" name="VS_MT" loradev="1"/>		
+    </vendor>
+	<vendor id="00000003" name="SENSA.iO">
+      <model id="0001" name="VALVE_POSITION" loradev="1"/>
+    </vendor>
+	<vendor id="00000004" name="microPIMS">
+      <model id="0001" name="HIGH_TEMP_DUAL" loradev="1"/>
+	  <model id="0002" name="HIGH_TEMP_SINGLE" loradev="1"/>
+    </vendor>
+    <vendor id="0048574C" name="Honeywell">
+        <model id="0001" name="WDM"/>
+        <model id="0002" name="FDAP"/>
+        <model id="0003" name="FDAP2"/>
+        <model id="0004" name="FD Router-Only"/>
+        <model id="0008" name="FDAP Gen3"/>
+        <model id="0009" name="PCAP"/>
+        <model id="000A" name="FDAP Gen3 Anchor"/>
+        <model id="2001" name="XYR 6000 Press"/>
+        <model id="2003" name="XYR 6000 TempDI"/>
+        <model id="2004" name="XYR 6000 HLAI"/>
+        <model id="2005" name="XYR 6000 Corr"/>
+        <model id="2007" name="XYR 6000 MAIDI"/>
+        <model id="2008" name="XYR 6000 MAIDIDO"/>
+        <model id="2009" name="XYR 6000 OWA"/>
+        <model id="200A" name="Enraf SmartRadar"/>
+        <model id="200B" name="Enraf WFI"/>
+        <model id="200C" name="Enraf Reserved"/>
+        <model id="200D" name="Enraf Reserved"/>
+        <model id="200E" name="Enraf Reserved"/>
+        <model id="200F" name="Enraf Reserved"/>
+        <model id="2010" name="FEWIO"/>
+        <model id="3000" name="WS Pressure"/>
+        <model id="3001" name="WS Temperature"/>
+        <model id="3002" name="WS Vibration"/>
+        <model id="3003" name="WS Pressure N"/>
+        <model id="3004" name="WS Temperature N"/>
+        <model id="300A" name="WBX Switch"/>
+        <model id="300B" name="WBX Switch SS"/>
+        <model id="300C" name="WBX Non-contact"/>
+        <model id="300D" name="WLS Switch Adapt"/>
+        <model id="3014" name="WOI"/>
+        <model id="3015" name="WOI Multi Input"/>
+        <model id="301E" name="WMX Analog"/>
+        <model id="301F" name="WMX Digital"/>
+        <model id="400A" name="ISA100 Simulator"/>
+        <model id="4010" name="FDAP Gen3 FEWIO"/>
+        <model id="4011" name="OW RTLS TAG"/>
+        <model id="4012" name="FDAP Gen3H"/>
+        <model id="4013" name="FDAP Gen3HAnchor"/>
+		<model id="4015" name="PCAP Anchor"/>
+        <model id="2012" name="STW TempAIDO"/>
+        <model id="2013" name="STW TempAIDI"/>
+        <model id="2011" name="STW TempDI"/>
+        <model id="2002" name="STX800"/>
+        <model id="5555" name="MVS" loradev="1"/>
+		<model id="5556" name="HVT" loradev="1"/>
+		<model id="5557" name="HVSS" loradev="1"/>	
+    </vendor>
+    <vendor id="004D5043" name="Moore Products Co."/>
+    <vendor id="004E4943" name="National Instruments"/>
+    <vendor id="004E4956" name="Armstrong">
+        <model id="0001" name="Steam Trap Montr"/>
+    </vendor>
+    <vendor id="00594543" name="Yokogawa">
+        <model id="0001" name="XS770A" loradev="1"/>
+        <model id="0002" name="XS550" loradev="1"/>
+        <model id="0005" name="YTA"/>
+        <model id="000C" name="EJX"/>
+        <model id="1802" name="YTMX580"/>
+    </vendor>
+    <vendor id="00000101" name="K-TEK"/>
+    <vendor id="00000156" name="Magnetrol International"/>
+    <vendor id="00000310" name="Micro Motion, Inc."/>
+    <vendor id="00000320" name="ABB"/>
+    <vendor id="0000043E" name="OVAL Corporation"/>
+    <vendor id="00000457" name="Ohmart/Vega Corp"/>
+    <vendor id="000004D2" name="Fisher Rosemount Per Tc"/>
+    <vendor id="000007D1" name="NOHKEN INC."/>
+    <vendor id="00000E05" name="Metso Automation"/>
+    <vendor id="00002000" name="EIM CONTROLS"/>
+    <vendor id="000021C3" name="Buerkert"/>
+    <vendor id="00005774" name="StoneL"/>
+    <vendor id="0000E099" name="SAMSON AG"/>
+    <vendor id="0000FF01" name="ROTORK"/>
+    <vendor id="00010253" name="M-System"/>
+    <vendor id="0005E35D" name="Limitorque Co."/>
+    <vendor id="000B87A3" name="ELOMATIC INTERNATIONAL"/>
+    <vendor id="00385885" name="Limitorque Corporation"/>
+    <vendor id="00445644" name="Dresser Valve Division"/>
+    <vendor id="00452B48" name="Endress+Hauser"/>
+    <vendor id="00464C53" name="Flowserve"/>
+    <vendor id="00465253" name="Fisher Rosemount Systems"/>
+    <vendor id="00466847" name="Fraunhofer IITB"/>
+    <vendor id="004C444E" name="Dresser Italia S.p.A."/>
+    <vendor id="00502B46" name="Pepperl+Fuchs"/>
+    <vendor id="00524149" name="Rosemount Analytical Inc"/>
+    <vendor id="00545758" name="TopWorx Inc."/>
+    <vendor id="0056474B" name="VEGA"/>
+    <vendor id="00534147" name="SIEMENS AG"/>
+    <vendor id="00564142" name="Bettis"/>
+    <vendor id="00564143" name="Bettis Canada"/>
+    <vendor id="00564144" name="Valve Automation Div."/>
+    <vendor id="00564153" name="Shafer"/>
+    <vendor id="00564154" name="Dantorque"/>
+    <vendor id="00574343" name="WTVC"/>
+    <vendor id="00000105" name="Microcyber Inc"/>
+    <vendor id="00000102" name="KNICK"/>
+    <vendor id="00000108" name="ISE-MAGTECH"/>
+    <vendor id="00000111" name="TURCK"/>
+    <vendor id="00004745" name="General Electric"/>
+    <vendor id="000007B0" name="Moore Industries"/>
+    <vendor id="000007D0" name="PR Electronics"/>
+    <vendor id="00000A1C" name="Anderson Instrument Co."/>
+    <vendor id="00003000" name="HMS Industrial Networks"/>
+    <vendor id="00004241" name="BEKA Associates"/>
+    <vendor id="00004549" name="EnVision Instruments"/>
+    <vendor id="0000A000" name="Fieldbus International"/>
+    <vendor id="0000F302" name="SPIRAX SARCO">
+        <model id="008E" name="ISA100-STAPS"/>
+    </vendor>
+    <vendor id="00535049" name="SPIRAX SARCO">
+        <model id="1234" name="ISA100-STAPS"/>
+    </vendor>
+    <vendor id="000A10FF" name="AUMA"/>
+    <vendor id="0031FF52" name="Ronan Engineering"/>
+    <vendor id="0041434C" name="ASCO Conrols, LP"/>
+    <vendor id="00435349" name="CSI"/>
+    <vendor id="0044594E" name="Dynisco"/>
+    <vendor id="00464C4F" name="Flowserve/Automax"/>
+    <vendor id="00465255" name="METTLER-TOLEDO"/>
+    <vendor id="000006B0" name="WIKA">
+		<model id="0001" name="Netris1" loradev="1"/>
+	</vendor>
+    <vendor id="00004000" name="BERNARD"/>
+    <vendor id="0000A1FF" name="BERTHOLD TECHNOLOGIES"/>
+    <vendor id="00445343" name="Duon System Co., Ltd."/>
+    <vendor id="004E5246" name="Enraf"/>
+    <vendor id="00575353" name="Tyco Valves and Controls"/>
+    <vendor id="00576363" name="Biffi"/>
+    <vendor id="005945FF" name="CEAG/COOPER Crouse-Hinds"/>
+    <vendor id="00005754" name="Welltech"/>
+    <vendor id="0010FF00" name="Fieldbus Foundation"/>
+    <vendor id="00001000" name="Beck, Harold and Sons"/>
+    <vendor id="00001167" name="Dynamic Flow Computers"/>
+    <vendor id="00038CBF" name="Beamex Oy Ab"/>
+    <vendor id="00000246" name="Brooks Instrument"/>
+    <vendor id="0000094B" name="Rexa, Koso America"/>
+    <vendor id="004E554D" name="Numatics Inc"/>
+    <vendor id="00001D6D" name="Hach Company"/>
+    <vendor id="000C1DC0" name="Cidra Corporation"/>
+    <vendor id="00000313" name="Dandong Top Instrument"/>
+    <vendor id="0077E1A5" name="Chemtrac Systems, Inc."/>
+    <vendor id="00424946" name="Biffi Italia srl"/>
+    <vendor id="00454E4F" name="ENOTEC GmbH"/>
+    <vendor id="00507843" name="Phoenix Contact"/>
+    <vendor id="00001988" name="Hawk"/>
+    <vendor id="0000094A" name="Koso Service Co., Ltd."/>
+    <vendor id="00000212" name="CQSIC Co., Ltd"/>
+    <vendor id="00000888" name="SUPCON"/>
+    <vendor id="0047E86B" name="Sense Eletronica LTDA"/>
+    <vendor id="000001FD" name="Fieldbus Diagnostics LLC"/>
+    <vendor id="00544653" name="Thermo Fisher Scientific"/>
+    <vendor id="00000211" name="Heinrichs Messtechnik"/>
+    <vendor id="01474545" name="GE Energy">
+        <model id="0001" name="wSIM"/>
+    </vendor>
+    <vendor id="01534B46" name="SKF">
+        <model id="2020" name="Vibration TX"/>
+    </vendor>
+    <vendor id="554E4B4E" name="--------">
+        <model id="0004" name="FD Router-Only"/>
+    </vendor>
+    <vendor id="0142454E" name="BEN">
+        <model id="0303" name="70M303"/>
+        <model id="0301" name="70M301"/>
+        <model id="0300" name="70M300"/>
+    </vendor>
+	<vendor id="00520000" name="Draeger">
+		<model id="0001" name="P6100"/>
+		<model id="FFFE" name="X-node" loradev="1"/>
+	</vendor>
+</standard_dict>
