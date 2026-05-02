@@ -37,7 +37,6 @@
       <model id="0001" name="HIGH_TEMP_DUAL" loradev="1"/>
 	  <model id="0002" name="HIGH_TEMP_SINGLE" loradev="1"/>
     </vendor>
-	</vendor>
 	<vendor id="00000005" name="Adeunis">
       <model id="0001" name="Signal_Generator" loradev="1"/>
     </vendor>
