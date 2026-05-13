@@ -1,6 +1,6 @@
 // =============================================================================
 // WIKA NETRIS1 - ChirpStack V3 Compatible Uplink Decoder
-// Supports TULIP2 and TULIP3 protocols
+// TULIP3 protocol only - fully flattened output for WDM compatibility
 // Pure ES5 - no arrow functions, template literals, or optional chaining
 // =============================================================================
 //
@@ -19,21 +19,17 @@ var MEASUREMENT_END   = 25;  // Engineering units maximum
 // =============================================================================
 
 function bytesToFloat32(b) {
-  // IEEE 754 big-endian single-precision float from 4-byte array
   var sign = (b[0] & 0x80) ? -1 : 1;
   var exp  = ((b[0] & 0x7F) << 1) | ((b[1] & 0x80) >> 7);
   var mant = ((b[1] & 0x7F) << 16) | (b[2] << 8) | b[3];
   if (exp === 0   && mant === 0) { return 0; }
   if (exp === 255 && mant !== 0) { return NaN; }
   if (exp === 255 && mant === 0) { return sign * Infinity; }
-  if (exp === 0) {
-    return sign * Math.pow(2, -126) * (mant / 8388608);
-  }
+  if (exp === 0) { return sign * Math.pow(2, -126) * (mant / 8388608); }
   return sign * Math.pow(2, exp - 127) * (1 + mant / 8388608);
 }
 
 function tulipToValue(raw, start, end) {
-  // TULIP uint16 scale: 2500 = range start, 12500 = range end
   return (raw - 2500) * (end - start) / 10000 + start;
 }
 
@@ -63,16 +59,6 @@ function bytesToASCII(b) {
   return s;
 }
 
-function bitfieldToFlags(value, flagDefs) {
-  var result = {};
-  for (var flag in flagDefs) {
-    if (flagDefs.hasOwnProperty(flag)) {
-      result[flag] = !!(value & flagDefs[flag]);
-    }
-  }
-  return result;
-}
-
 function setNestedValue(obj, path, value) {
   var parts = path.split('.');
   var cur = obj;
@@ -83,50 +69,65 @@ function setNestedValue(obj, path, value) {
   cur[parts[parts.length - 1]] = value;
 }
 
+// Flattens nested objects into top-level keys using underscores
+// e.g. { sensor1: { channel1: { measurand: 'Current' } } }
+//   -> { sensor1_channel1_measurand: 'Current' }
+function flattenObject(obj, prefix) {
+  var result = {};
+  for (var key in obj) {
+    if (!obj.hasOwnProperty(key)) { continue; }
+    var newKey = prefix ? prefix + '_' + key : key;
+    var val = obj[key];
+    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+      var nested = flattenObject(val, newKey);
+      for (var nk in nested) {
+        if (nested.hasOwnProperty(nk)) { result[nk] = nested[nk]; }
+      }
+    } else {
+      result[newKey] = val;
+    }
+  }
+  return result;
+}
+
 // =============================================================================
 // LOOKUP TABLES
 // =============================================================================
 
 var MEASURAND_NAMES = {
-  1:  'Temperature',          2:  'Temperature difference',
-  3:  'Pressure (gauge)',     4:  'Pressure (absolute)',
-  5:  'Pressure (differential)', 6: 'Flow (vol.)',
-  7:  'Flow (mass)',          8:  'Force',
-  9:  'Mass',                 10: 'Level',
-  11: 'Length',               12: 'Volume',
-  13: 'Current',              14: 'Voltage',
-  15: 'Resistance',           16: 'Capacitance',
-  17: 'Inductance',           18: 'Relative',
-  19: 'Time',                 20: 'Frequency',
-  21: 'Speed',                22: 'Acceleration',
-  23: 'Density',              26: 'Humidity (relative)',
-  27: 'Humidity (absolute)',  28: 'Angle / Inclination',
+  1:  'Temperature',             2:  'Temperature difference',
+  3:  'Pressure (gauge)',        4:  'Pressure (absolute)',
+  5:  'Pressure (differential)', 6:  'Flow (vol.)',
+  7:  'Flow (mass)',             8:  'Force',
+  9:  'Mass',                    10: 'Level',
+  11: 'Length',                  12: 'Volume',
+  13: 'Current',                 14: 'Voltage',
+  15: 'Resistance',              16: 'Capacitance',
+  17: 'Inductance',              18: 'Relative',
+  19: 'Time',                    20: 'Frequency',
+  21: 'Speed',                   22: 'Acceleration',
+  23: 'Density',                 26: 'Humidity (relative)',
+  27: 'Humidity (absolute)',     28: 'Angle / Inclination',
   29: 'Strain'
 };
 
 var UNIT_NAMES = {
-  1:   'C',      2:   'F',       3:   'K',
-  7:   'bar',    8:   'mbar',    10:  'Pa',
-  11:  'hPa',    12:  'kPa',     13:  'MPa',
-  14:  'psi',    45:  'N',       46:  'daN',
-  47:  'kN',     55:  'kg',      56:  'g',
-  60:  'mm',     61:  'cm',      62:  'm',
-  70:  'l',      72:  'm3',      82:  'mOhm',
-  83:  'Ohm',    84:  'kOhm',    86:  'uV',
-  87:  'mV',     88:  'V',       90:  'mA',
-  91:  'uA',     100: '%',       101: 'permille',
-  102: 'ppm',    105: 'deg',     160: 's',
-  161: 'min',    162: 'h',       167: 'Hz',
-  170: 'm/s',    180: 'm/s2',    185: 'ueps'
+  1:   'C',        2:   'F',       3:   'K',
+  7:   'bar',      8:   'mbar',    10:  'Pa',
+  11:  'hPa',      12:  'kPa',     13:  'MPa',
+  14:  'psi',      45:  'N',       46:  'daN',
+  47:  'kN',       55:  'kg',      56:  'g',
+  60:  'mm',       61:  'cm',      62:  'm',
+  70:  'l',        72:  'm3',      82:  'mOhm',
+  83:  'Ohm',      84:  'kOhm',    86:  'uV',
+  87:  'mV',       88:  'V',       90:  'mA',
+  91:  'uA',       100: '%',       101: 'permille',
+  102: 'ppm',      105: 'deg',     160: 's',
+  161: 'min',      162: 'h',       167: 'Hz',
+  170: 'm/s',      180: 'm/s2',    185: 'ueps'
 };
 
 var PROTOCOL_DATA_TYPE_LENGTHS = { 0: 4, 1: 3, 2: 2, 3: 2 };
-
-var TULIP2_PRODUCT_NAMES = { 15: 'NETRIS1', 16: 'NETRIS1 BLE+LPWAN', 17: 'NETRIS1 BLE' };
-var TULIP2_SENSOR_NAMES  = { 0: 'RTD', 1: 'E-Signal', 2: 'TRW' };
-var TULIP2_LPWAN_NAMES   = { 0: 'Reserved', 1: 'mioty', 2: 'LoRaWAN' };
-var TULIP2_MEASURAND_NAMES = { 1: 'Temperature', 13: 'Current', 14: 'Voltage', 18: 'Relative' };
-var TULIP2_UNIT_NAMES    = { 1: 'C', 2: 'F', 88: 'V', 90: 'mA', 100: '%' };
 
 var CM_ALARM_FLAGS = {
   localUserAccessDenied: 1,  cmChipLowTemperature:  2,
@@ -136,21 +137,14 @@ var CM_ALARM_FLAGS = {
 };
 
 var SENSOR_ALARM_FLAGS = {
-  sensorCommunicationError: 1,   sensorNotSupported:       2,
-  sensorInternalError:      4,   sensorIdentificationError: 32768
+  sensorCommunicationError:  1,     sensorNotSupported:        2,
+  sensorInternalError:       4,     sensorIdentificationError: 32768
 };
 
 var CHANNEL_ALARM_FLAGS = {
   shortCondition:              1,  openCondition:               2,
   outOfMinMeasurementRange:    4,  outOfMaxMeasurementRange:    8,
   outOfMinPhysicalSensorLimit: 16, outOfMaxPhysicalSensorLimit: 32
-};
-
-var TULIP2_TECHNICAL_ALARM_FLAGS = { 'SSM communication error': 1, 'SSM identity error': 128 };
-var TULIP2_DEVICE_ALARM_FLAGS    = { 'low battery error': 1, 'duty cycle alarm': 4, 'configuration error': 8 };
-var TULIP2_CHANNEL_FAILURE_FLAGS = {
-  MV_STAT_ERROR: 1, MV_STAT_WARNING: 2, MV_STAT_LIM_HI: 4,
-  MV_STAT_LIM_LO: 8, MV_STAT_WARNING_2: 16
 };
 
 var CONFIG_STATUS_NAMES = {
@@ -173,9 +167,7 @@ var SPONTANEOUS_STATUS_NAMES = {
 };
 
 // =============================================================================
-// TULIP3 REGISTER BLOCK PARSER
-// Used by Identification (0x14) and Configuration (0x15) messages.
-// Format: 2-byte addressing field [addr:11 | size:5] followed by `size` data bytes.
+// TULIP3 REGISTER BLOCK PARSER (used by Identification and Configuration)
 // =============================================================================
 
 function decodeAddressingField(b0, b1) {
@@ -207,55 +199,52 @@ function getChannelIdBaseAddress(sNum, cNum) {
 function buildIdentificationLookup() {
   var lk = {};
 
-  // Communication module identification (base address 0)
-  lk[0]  = { path: 'communicationModule.productId',      size: 1, parser: function(b) { return b[0]; } };
-  lk[1]  = { path: 'communicationModule.productSubId',   size: 1, parser: function(b) { return b[0]; } };
-  lk[2]  = { path: 'communicationModule.channelPlan',    size: 1, parser: function(b) { return b[0]; } };
-  lk[3]  = { path: 'communicationModule.connectedSensors', size: 1, parser: function(b) {
+  lk[0]  = { path: 'communicationModule.productId',         size: 1, parser: function(b) { return b[0]; } };
+  lk[1]  = { path: 'communicationModule.productSubId',      size: 1, parser: function(b) { return b[0]; } };
+  lk[2]  = { path: 'communicationModule.channelPlan',       size: 1, parser: function(b) { return b[0]; } };
+  lk[3]  = { path: 'communicationModule.connectedSensors',  size: 1, parser: function(b) {
     var obj = {};
     for (var n = 1; n <= 4; n++) { obj['sensor' + n] = !!(b[0] & (1 << (n - 1))); }
     return obj;
   }};
-  lk[4]  = { path: 'communicationModule.firmwareVersion', size: 3, parser: bytesToSemVer };
-  lk[7]  = { path: 'communicationModule.hardwareVersion', size: 3, parser: bytesToSemVer };
-  lk[10] = { path: 'communicationModule.productionDate',  size: 3, parser: bytesToDate  };
-  lk[13] = { path: 'communicationModule.serialNumberPart1', size: 5, parser: bytesToASCII };
-  lk[18] = { path: 'communicationModule.serialNumberPart2', size: 6, parser: bytesToASCII };
+  lk[4]  = { path: 'communicationModule.firmwareVersion',   size: 3, parser: bytesToSemVer };
+  lk[7]  = { path: 'communicationModule.hardwareVersion',   size: 3, parser: bytesToSemVer };
+  lk[10] = { path: 'communicationModule.productionDate',    size: 3, parser: bytesToDate   };
+  lk[13] = { path: 'communicationModule.serialNumberPart1', size: 5, parser: bytesToASCII  };
+  lk[18] = { path: 'communicationModule.serialNumberPart2', size: 6, parser: bytesToASCII  };
 
-  // Sensor and channel identification for sensors 1-4, channels 1-8
   for (var s = 1; s <= 4; s++) {
     var sb   = getSensorIdBaseAddress(s);
     var sKey = 'sensor' + s;
 
-    lk[sb + 0]  = { path: sKey + '.sensorType',       size: 2, parser: function(b) { return uint16(b[0], b[1]); } };
-    lk[sb + 2]  = { path: sKey + '.existingChannels', size: 1, parser: function(b) {
+    lk[sb + 0]  = { path: sKey + '.sensorType',        size: 2, parser: function(b) { return uint16(b[0], b[1]); } };
+    lk[sb + 2]  = { path: sKey + '.existingChannels',  size: 1, parser: function(b) {
       var obj = {};
       for (var n = 1; n <= 8; n++) { obj['channel' + n] = !!(b[0] & (1 << (n - 1))); }
       return obj;
     }};
-    lk[sb + 3]  = { path: sKey + '.firmwareVersion',     size: 3, parser: bytesToSemVer };
-    lk[sb + 6]  = { path: sKey + '.hardwareVersion',     size: 3, parser: bytesToSemVer };
-    lk[sb + 9]  = { path: sKey + '.productionDate',      size: 3, parser: bytesToDate   };
-    lk[sb + 12] = { path: sKey + '.serialNumberPart1',   size: 5, parser: bytesToASCII  };
-    lk[sb + 17] = { path: sKey + '.serialNumberPart2',   size: 6, parser: bytesToASCII  };
+    lk[sb + 3]  = { path: sKey + '.firmwareVersion',   size: 3, parser: bytesToSemVer };
+    lk[sb + 6]  = { path: sKey + '.hardwareVersion',   size: 3, parser: bytesToSemVer };
+    lk[sb + 9]  = { path: sKey + '.productionDate',    size: 3, parser: bytesToDate   };
+    lk[sb + 12] = { path: sKey + '.serialNumberPart1', size: 5, parser: bytesToASCII  };
+    lk[sb + 17] = { path: sKey + '.serialNumberPart2', size: 6, parser: bytesToASCII  };
 
     for (var c = 1; c <= 8; c++) {
       var cb   = getChannelIdBaseAddress(s, c);
       var cKey = sKey + '.channel' + c;
 
-      lk[cb + 0]  = { path: cKey + '.measurand',       size: 1, parser: function(b) { return MEASURAND_NAMES[b[0]] || ('Unknown(' + b[0] + ')'); } };
-      lk[cb + 1]  = { path: cKey + '.unit',            size: 1, parser: function(b) { return UNIT_NAMES[b[0]]      || ('Unknown(' + b[0] + ')'); } };
-      lk[cb + 2]  = { path: cKey + '.minMeasureRange', size: 4, parser: bytesToFloat32 };
-      lk[cb + 6]  = { path: cKey + '.maxMeasureRange', size: 4, parser: bytesToFloat32 };
-      lk[cb + 10] = { path: cKey + '.minPhysicalLimit',size: 4, parser: bytesToFloat32 };
-      lk[cb + 14] = { path: cKey + '.maxPhysicalLimit',size: 4, parser: bytesToFloat32 };
-      lk[cb + 18] = { path: cKey + '.accuracy',        size: 2, parser: function(b) { return uint16(b[0], b[1]) / 1000; } };
-      lk[cb + 20] = { path: cKey + '.offset',          size: 4, parser: bytesToFloat32 };
-      lk[cb + 24] = { path: cKey + '.gain',            size: 4, parser: bytesToFloat32 };
-      lk[cb + 28] = { path: cKey + '.calibrationDate', size: 3, parser: bytesToDate    };
+      lk[cb + 0]  = { path: cKey + '.measurand',        size: 1, parser: function(b) { return MEASURAND_NAMES[b[0]] || ('Unknown(' + b[0] + ')'); } };
+      lk[cb + 1]  = { path: cKey + '.unit',             size: 1, parser: function(b) { return UNIT_NAMES[b[0]]      || ('Unknown(' + b[0] + ')'); } };
+      lk[cb + 2]  = { path: cKey + '.minMeasureRange',  size: 4, parser: bytesToFloat32 };
+      lk[cb + 6]  = { path: cKey + '.maxMeasureRange',  size: 4, parser: bytesToFloat32 };
+      lk[cb + 10] = { path: cKey + '.minPhysicalLimit', size: 4, parser: bytesToFloat32 };
+      lk[cb + 14] = { path: cKey + '.maxPhysicalLimit', size: 4, parser: bytesToFloat32 };
+      lk[cb + 18] = { path: cKey + '.accuracy',         size: 2, parser: function(b) { return uint16(b[0], b[1]) / 1000; } };
+      lk[cb + 20] = { path: cKey + '.offset',           size: 4, parser: bytesToFloat32 };
+      lk[cb + 24] = { path: cKey + '.gain',             size: 4, parser: bytesToFloat32 };
+      lk[cb + 28] = { path: cKey + '.calibrationDate',  size: 3, parser: bytesToDate    };
     }
   }
-
   return lk;
 }
 
@@ -280,16 +269,17 @@ function evaluateRegisterBlocks(blocks, lookup) {
 }
 
 // =============================================================================
-// TULIP3 DECODERS (message types 16-23 / 0x10-0x17)
+// TULIP3 MESSAGE DECODERS - all return flat top-level objects
 // =============================================================================
 
+// Types 16 and 17 - Measurement data (periodic and alarm-triggered)
+// Flat output: messageType, messageSubType, protocol, value,
+//              sensorId, channelId, valueAcquisitionError
 function decodeTULIP3Data(bytes) {
-  // Message types 0x10 (periodic) and 0x11 (alarm-triggered)
   var result = {
     messageType:    bytes[0],
     messageSubType: bytes[1] & 0x3F,
-    protocol:       'TULIP3',
-    measurements:   []
+    protocol:       'TULIP3'
   };
   var i = 2;
   while (i < bytes.length) {
@@ -301,369 +291,185 @@ function decodeTULIP3Data(bytes) {
     if (typeLen === undefined || i + 1 + typeLen > bytes.length) { break; }
 
     var dataBytes = bytes.slice(i + 1, i + 1 + typeLen);
-    var meas = {
-      sensor:    'sensor'  + (sensorId  + 1),
-      sensorId:  sensorId,
-      channel:   'channel' + (channelId + 1),
-      channelId: channelId
-    };
+
+    result.sensorId  = sensorId;
+    result.channelId = channelId;
 
     if (typeIdx === 3) {
-      // uint16 TULIP scale 2500-12500
       var raw = uint16(dataBytes[0], dataBytes[1]);
       if (raw === 65535) {
-        meas.valueAcquisitionError = true;
+        result.valueAcquisitionError = true;
       } else {
-        meas.value = round4(tulipToValue(raw, MEASUREMENT_START, MEASUREMENT_END));
+        result.value = round4(tulipToValue(raw, MEASUREMENT_START, MEASUREMENT_END));
       }
     } else if (typeIdx === 0) {
-      // float32 IEEE 754
       var fval = round4(bytesToFloat32(dataBytes));
-      if (isNaN(fval)) { meas.valueAcquisitionError = true; }
-      else             { meas.value = fval; }
+      if (isNaN(fval)) { result.valueAcquisitionError = true; }
+      else             { result.value = fval; }
     } else {
-      // int24 Q16.7 and int16 Q10.5 not implemented (uncommon for NETRIS1)
-      meas.value = null;
-      meas.note  = 'Fixed-point data type not decoded';
+      result.value = null;
+      result.note  = 'Fixed-point data type not decoded';
     }
-    result.measurements.push(meas);
     i += 1 + typeLen;
   }
   return result;
 }
 
+// Type 18 - Process alarm
+// Flat output: messageType, messageSubType, protocol, sensorId, channelId,
+//              lowThreshold, highThreshold, fallingSlope, risingSlope,
+//              lowThresholdWithDelay, highThresholdWithDelay
 function decodeTULIP3ProcessAlarm(bytes) {
   var result = {
     messageType:    bytes[0],
     messageSubType: bytes[1] & 0x3F,
-    protocol:       'TULIP3',
-    processAlarms:  []
+    protocol:       'TULIP3'
   };
   var i = 2;
-  while (i + 1 < bytes.length) {
+  // For single-sensor devices only first alarm entry is populated
+  if (i + 1 < bytes.length) {
     var b0 = bytes[i];
     var b1 = bytes[i + 1];
-    result.processAlarms.push({
-      sensor:    'sensor'  + (((b0 & 0xC0) >> 6) + 1),
-      sensorId:   (b0 & 0xC0) >> 6,
-      channel:   'channel' + (((b0 & 0x38) >> 3) + 1),
-      channelId:  (b0 & 0x38) >> 3,
-      alarmFlags: {
-        lowThreshold:           !!(b1 & 0x80),
-        highThreshold:          !!(b1 & 0x40),
-        fallingSlope:           !!(b1 & 0x20),
-        risingSlope:            !!(b1 & 0x10),
-        lowThresholdWithDelay:  !!(b1 & 0x08),
-        highThresholdWithDelay: !!(b1 & 0x04)
-      }
-    });
-    i += 2;
+    result.sensorId               = (b0 & 0xC0) >> 6;
+    result.channelId              = (b0 & 0x38) >> 3;
+    result.lowThreshold           = !!(b1 & 0x80);
+    result.highThreshold          = !!(b1 & 0x40);
+    result.fallingSlope           = !!(b1 & 0x20);
+    result.risingSlope            = !!(b1 & 0x10);
+    result.lowThresholdWithDelay  = !!(b1 & 0x08);
+    result.highThresholdWithDelay = !!(b1 & 0x04);
   }
   return result;
 }
 
+// Type 19 - Device alarm
+// Subtype 1 (CM): messageType, messageSubType, protocol,
+//                 localUserAccessDenied, cmChipLowTemperature,
+//                 cmChipHighTemperature, airTimeLimitation,
+//                 memoryError, lowVoltage, highVoltage
+// Subtype 2 (Sensor): messageType, messageSubType, protocol, sensorId,
+//                     sensorCommunicationError, sensorNotSupported,
+//                     sensorInternalError, sensorIdentificationError
+// Subtype 3 (Channel): messageType, messageSubType, protocol, sensorId,
+//                      channelId, shortCondition, openCondition,
+//                      outOfMinMeasurementRange, outOfMaxMeasurementRange,
+//                      outOfMinPhysicalSensorLimit, outOfMaxPhysicalSensorLimit
 function decodeTULIP3DeviceAlarm(bytes) {
   var subType = bytes[1] & 0x3F;
   var result  = { messageType: bytes[0], messageSubType: subType, protocol: 'TULIP3' };
-  var alarmVal, idx;
+  var alarmVal, flag;
 
   if (subType === 1) {
-    // Communication module alarm
     if (bytes.length < 4) { return result; }
     alarmVal = uint16(bytes[2], bytes[3]) & 0x7FFF;
-    result.communicationModuleAlarms = bitfieldToFlags(alarmVal, CM_ALARM_FLAGS);
+    for (flag in CM_ALARM_FLAGS) {
+      if (CM_ALARM_FLAGS.hasOwnProperty(flag)) {
+        result[flag] = !!(alarmVal & CM_ALARM_FLAGS[flag]);
+      }
+    }
   } else if (subType === 2) {
-    // Sensor alarms - 3 bytes per sensor entry
-    result.sensorAlarms = [];
-    idx = 2;
-    while (idx + 2 < bytes.length) {
-      var sId = (bytes[idx] >> 6) & 0x03;
-      alarmVal = uint16(bytes[idx + 1], bytes[idx + 2]) & 0x7FFF;
-      result.sensorAlarms.push({
-        sensor:     'sensor' + (sId + 1),
-        sensorId:   sId,
-        alarmFlags: bitfieldToFlags(alarmVal, SENSOR_ALARM_FLAGS)
-      });
-      idx += 3;
+    if (bytes.length < 5) { return result; }
+    var sId  = (bytes[2] >> 6) & 0x03;
+    alarmVal = uint16(bytes[3], bytes[4]) & 0x7FFF;
+    result.sensorId = sId;
+    for (flag in SENSOR_ALARM_FLAGS) {
+      if (SENSOR_ALARM_FLAGS.hasOwnProperty(flag)) {
+        result[flag] = !!(alarmVal & SENSOR_ALARM_FLAGS[flag]);
+      }
     }
   } else if (subType === 3) {
-    // Channel alarms - 3 bytes per channel entry
-    result.channelAlarms = [];
-    idx = 2;
-    while (idx + 2 < bytes.length) {
-      var sId2 = (bytes[idx] >> 6) & 0x03;
-      var cId  = (bytes[idx] >> 3) & 0x07;
-      alarmVal = uint16(bytes[idx + 1], bytes[idx + 2]) & 0x7FFF;
-      result.channelAlarms.push({
-        sensor:     'sensor'  + (sId2 + 1),
-        sensorId:   sId2,
-        channel:    'channel' + (cId  + 1),
-        channelId:  cId,
-        alarmFlags: bitfieldToFlags(alarmVal, CHANNEL_ALARM_FLAGS)
-      });
-      idx += 3;
+    if (bytes.length < 5) { return result; }
+    var sId2 = (bytes[2] >> 6) & 0x03;
+    var cId  = (bytes[2] >> 3) & 0x07;
+    alarmVal = uint16(bytes[3], bytes[4]) & 0x7FFF;
+    result.sensorId  = sId2;
+    result.channelId = cId;
+    for (flag in CHANNEL_ALARM_FLAGS) {
+      if (CHANNEL_ALARM_FLAGS.hasOwnProperty(flag)) {
+        result[flag] = !!(alarmVal & CHANNEL_ALARM_FLAGS[flag]);
+      }
     }
   }
   return result;
 }
 
+// Type 20 - Identification
+// Flat output: messageType, messageSubType, protocol,
+//              then all identification fields flattened with underscores
+// e.g. communicationModule_firmwareVersion, sensor1_channel1_measurand, etc.
 function decodeTULIP3Identification(bytes) {
   var subType = bytes[1] & 0x3F;
   var lookup  = buildIdentificationLookup();
   var blocks  = parseRegisterBlocks(bytes, 2);
-  return {
-    messageType:    bytes[0],
-    messageSubType: subType,
-    protocol:       'TULIP3',
-    identification: evaluateRegisterBlocks(blocks, lookup)
-  };
+  var nested  = evaluateRegisterBlocks(blocks, lookup);
+  var flat    = flattenObject(nested, '');
+  flat.messageType    = bytes[0];
+  flat.messageSubType = subType;
+  flat.protocol       = 'TULIP3';
+  return flat;
 }
 
+// Type 21 - Configuration response
+// Flat output: messageType, messageSubType, protocol,
+//              configStatus, frameNumber, revisionCounter, totalWrongFrames
 function decodeTULIP3Configuration(bytes) {
   var subType = bytes[1] & 0x3F;
   var result  = { messageType: bytes[0], messageSubType: subType, protocol: 'TULIP3' };
   if (subType === 3) {
-    // Write acknowledgement
     if (bytes.length < 4) { return result; }
-    var frameNum   = (bytes[2] >> 2) & 0x1F;
-    var statusCode = bytes[3];
-    result.configurationAck = {
-      frameNumber: frameNum,
-      status: CONFIG_STATUS_NAMES[statusCode] || ('Unknown status: ' + statusCode)
-    };
+    result.frameNumber = (bytes[2] >> 2) & 0x1F;
+    result.configStatus = CONFIG_STATUS_NAMES[bytes[3]] || ('Unknown status: ' + bytes[3]);
     if (bytes.length >= 7) {
-      result.configurationAck.revisionCounter  = uint16(bytes[4], bytes[5]);
-      result.configurationAck.totalWrongFrames = bytes[6];
+      result.revisionCounter  = uint16(bytes[4], bytes[5]);
+      result.totalWrongFrames = bytes[6];
     }
   } else {
-    // Read response - return raw register blocks (configuration decode not required for read-only use)
-    result.registerBlocks = parseRegisterBlocks(bytes, 2);
-    result.note = 'Configuration register read - raw blocks returned';
+    result.note = 'Configuration register read - no parameters mapped';
   }
   return result;
 }
 
+// Type 22 - Keep-alive
+// Flat output: messageType, messageSubType, protocol,
+//              mainPowered, ableToComputeBatteryLevel,
+//              hasCommunicationModuleRestarted, revisionCounter,
+//              BATTERY_STATUS (only present when battery level available)
 function decodeTULIP3KeepAlive(bytes) {
-  if (bytes.length < 5) { return { error: 'Keep-alive message too short', raw: bytes }; }
+  if (bytes.length < 5) { return { error: 'Keep-alive message too short' }; }
   var flags  = bytes[2];
   var result = {
-    messageType:    bytes[0],
-    messageSubType: bytes[1] & 0x3F,
-    protocol:       'TULIP3',
-    keepAliveData: {
-      status: {
-        mainPowered:                     !!(flags & 0x80),
-        ableToComputeBatteryLevel:       !!(flags & 0x40),
-        hasCommunicationModuleRestarted: !!(flags & 0x20)
-      },
-      revisionCounter: uint16(bytes[3], bytes[4])
-    }
+    messageType:                     bytes[0],
+    messageSubType:                  bytes[1] & 0x3F,
+    protocol:                        'TULIP3',
+    mainPowered:                     !!(flags & 0x80),
+    ableToComputeBatteryLevel:       !!(flags & 0x40),
+    hasCommunicationModuleRestarted: !!(flags & 0x20),
+    revisionCounter:                 uint16(bytes[3], bytes[4])
   };
   if ((flags & 0x40) && bytes.length >= 6) {
-    result.keepAliveData.batteryLevelPercent = bytes[5];
+    result.BATTERY_STATUS = bytes[5];
   }
   return result;
 }
 
+// Type 23 - Spontaneous downlink answer
+// Flat output: messageType, messageSubType, protocol,
+//              answeredType, answeredSubType, status, deviceErrorCode
 function decodeTULIP3SpontaneousAnswer(bytes) {
   var subType = bytes[1] & 0x3F;
   var result  = { messageType: bytes[0], messageSubType: subType, protocol: 'TULIP3' };
   if (subType === 1) {
-    // Generic downlink answer
     if (bytes.length < 5) { return result; }
-    var statusCode = bytes[4];
-    result.spontaneousDownlinkAnswer = {
-      answeredDownlink: { type: bytes[2], subType: bytes[3] & 0x3F },
-      status: SPONTANEOUS_STATUS_NAMES[statusCode] || ('Unknown: ' + statusCode)
-    };
-    if (statusCode === 4 && bytes.length >= 6) {
-      result.spontaneousDownlinkAnswer.deviceErrorCode = bytes[5];
+    result.answeredType    = bytes[2];
+    result.answeredSubType = bytes[3] & 0x3F;
+    result.status          = SPONTANEOUS_STATUS_NAMES[bytes[4]] || ('Unknown: ' + bytes[4]);
+    if (bytes[4] === 4 && bytes.length >= 6) {
+      result.deviceErrorCode = bytes[5];
     }
   } else if (subType === 2) {
     result.fetchAdditionalDownlink = true;
   }
   return result;
-}
-
-// =============================================================================
-// TULIP2 DECODERS (message types 1-10)
-// =============================================================================
-
-function decodeTULIP2Data(bytes) {
-  if (bytes.length !== 5) {
-    return { error: 'TULIP2 data message requires 5 bytes, got ' + bytes.length };
-  }
-  var raw    = uint16(bytes[3], bytes[4]);
-  var result = {
-    messageType:     bytes[0],
-    configurationId: bytes[1],
-    protocol:        'TULIP2'
-  };
-  if (raw === 65535) {
-    result.error = 'Invalid measurement value (0xFFFF)';
-  } else {
-    result.measurement = {
-      channelId:   0,
-      channelName: 'measurement',
-      value:       round4(tulipToValue(raw, MEASUREMENT_START, MEASUREMENT_END))
-    };
-  }
-  return result;
-}
-
-function decodeTULIP2ProcessAlarm(bytes) {
-  if (bytes.length < 6) {
-    return { error: 'TULIP2 process alarm message too short' };
-  }
-  var PROCESS_ALARM_TYPES = {
-    lowThreshold: 1, highThreshold: 2, fallingSlope: 4, risingSlope: 8,
-    lowThresholdWithDelay: 16, highThresholdWithDelay: 32
-  };
-  var result = {
-    messageType:     bytes[0],
-    configurationId: bytes[1],
-    protocol:        'TULIP2',
-    processAlarms:   []
-  };
-  var channelId = bytes[2] & 0x0F;
-  for (var i = 3; i + 2 < bytes.length; i += 3) {
-    var event     = (bytes[i] & 0x80) >> 7;
-    var alarmBits = bytes[i] & 0x3F;
-    var rawVal    = uint16(bytes[i + 1], bytes[i + 2]);
-    var isSlope   = (alarmBits === PROCESS_ALARM_TYPES.risingSlope || alarmBits === PROCESS_ALARM_TYPES.fallingSlope);
-    var value     = isSlope
-      ? round4((rawVal / 100) / 100 * (MEASUREMENT_END - MEASUREMENT_START))
-      : round4(tulipToValue(rawVal, MEASUREMENT_START, MEASUREMENT_END));
-    var alarmFlags = {};
-    for (var flag in PROCESS_ALARM_TYPES) {
-      if (PROCESS_ALARM_TYPES.hasOwnProperty(flag)) {
-        alarmFlags[flag] = !!(alarmBits & PROCESS_ALARM_TYPES[flag]);
-      }
-    }
-    result.processAlarms.push({
-      channelId:  channelId,
-      event:      event,
-      eventName:  event === 0 ? 'triggered' : 'disappeared',
-      alarmFlags: alarmFlags,
-      value:      value
-    });
-  }
-  return result;
-}
-
-function decodeTULIP2TechnicalAlarm(bytes) {
-  if (bytes.length !== 5) {
-    return { error: 'TULIP2 technical alarm requires 5 bytes, got ' + bytes.length };
-  }
-  var alarmVal   = uint16(bytes[3], bytes[4]) & 0x7FFF;
-  var alarmNames = [];
-  for (var name in TULIP2_TECHNICAL_ALARM_FLAGS) {
-    if (TULIP2_TECHNICAL_ALARM_FLAGS.hasOwnProperty(name)) {
-      if (alarmVal & TULIP2_TECHNICAL_ALARM_FLAGS[name]) { alarmNames.push(name); }
-    }
-  }
-  return {
-    messageType:     bytes[0],
-    configurationId: bytes[1],
-    protocol:        'TULIP2',
-    technicalAlarms: [{ sensorId: 0, alarmType: alarmVal, alarmTypeNames: alarmNames }]
-  };
-}
-
-function decodeTULIP2DeviceAlarm(bytes) {
-  if (bytes.length !== 4) {
-    return { error: 'TULIP2 device alarm requires 4 bytes, got ' + bytes.length };
-  }
-  var alarmVal   = uint16(bytes[2], bytes[3]) & 0x7FFF;
-  var alarmNames = [];
-  for (var name in TULIP2_DEVICE_ALARM_FLAGS) {
-    if (TULIP2_DEVICE_ALARM_FLAGS.hasOwnProperty(name)) {
-      if (alarmVal & TULIP2_DEVICE_ALARM_FLAGS[name]) { alarmNames.push(name); }
-    }
-  }
-  return {
-    messageType:     bytes[0],
-    configurationId: bytes[1],
-    protocol:        'TULIP2',
-    deviceAlarm:     { alarmType: alarmVal, alarmTypeNames: alarmNames }
-  };
-}
-
-function decodeTULIP2Identification(bytes) {
-  if (bytes.length < 29) {
-    return { error: 'TULIP2 identification message requires at least 29 bytes, got ' + bytes.length };
-  }
-  var productId  = bytes[2];
-  var subIdByte  = bytes[3];
-  var sensorId   = subIdByte & 0x1F;
-  var lpwanId    = (subIdByte >> 5) & 0x07;
-  var serialBytes = bytes.slice(8, 19);
-  var serialNum   = '';
-  for (var i = 0; i < serialBytes.length; i++) {
-    if (serialBytes[i] !== 0) { serialNum += String.fromCharCode(serialBytes[i]); }
-  }
-  var measurandId = bytes[27];
-  var unitId      = bytes[28];
-  return {
-    messageType:     bytes[0],
-    configurationId: bytes[1],
-    protocol:        'TULIP2',
-    deviceInformation: {
-      productId:               productId,
-      productName:             TULIP2_PRODUCT_NAMES[productId] || ('Unknown(' + productId + ')'),
-      sensorId:                sensorId,
-      sensorName:              TULIP2_SENSOR_NAMES[sensorId]   || ('Unknown(' + sensorId + ')'),
-      lpwanId:                 lpwanId,
-      lpwanName:               TULIP2_LPWAN_NAMES[lpwanId]     || ('Unknown(' + lpwanId + ')'),
-      wirelessFirmwareVersion: ((bytes[4] >> 4) & 0xF) + '.' + (bytes[4] & 0xF) + '.' + bytes[5],
-      wirelessHardwareVersion: ((bytes[6] >> 4) & 0xF) + '.' + (bytes[6] & 0xF) + '.' + bytes[7],
-      serialNumber:            serialNum,
-      measurementRangeStart:   round4(bytesToFloat32(bytes.slice(19, 23))),
-      measurementRangeEnd:     round4(bytesToFloat32(bytes.slice(23, 27))),
-      measurandId:             measurandId,
-      measurandName:           TULIP2_MEASURAND_NAMES[measurandId] || ('Unknown(' + measurandId + ')'),
-      unitId:                  unitId,
-      unitName:                TULIP2_UNIT_NAMES[unitId]           || ('Unknown(' + unitId + ')')
-    }
-  };
-}
-
-function decodeTULIP2KeepAlive(bytes) {
-  if (bytes.length !== 3) {
-    return { error: 'TULIP2 keep-alive requires 3 bytes, got ' + bytes.length };
-  }
-  return {
-    messageType:     bytes[0],
-    configurationId: bytes[1],
-    protocol:        'TULIP2',
-    deviceStatistic: {
-      batteryLevelNewEvent: !!(bytes[2] & 0x80),
-      batteryLevelPercent:   bytes[2] & 0x7F
-    }
-  };
-}
-
-function decodeTULIP2ChannelFailureAlarm(bytes) {
-  if (bytes.length !== 5) {
-    return { error: 'TULIP2 channel failure alarm requires 5 bytes, got ' + bytes.length };
-  }
-  var alarmVal   = uint16(bytes[3], bytes[4]) & 0x7FFF;
-  var alarmNames = [];
-  for (var name in TULIP2_CHANNEL_FAILURE_FLAGS) {
-    if (TULIP2_CHANNEL_FAILURE_FLAGS.hasOwnProperty(name)) {
-      if (alarmVal & TULIP2_CHANNEL_FAILURE_FLAGS[name]) { alarmNames.push(name); }
-    }
-  }
-  return {
-    messageType:         bytes[0],
-    configurationId:     bytes[1],
-    protocol:            'TULIP2',
-    channelFailureAlarm: {
-      channelId:      bytes[2] & 0x0F,
-      alarmType:      alarmVal,
-      alarmTypeNames: alarmNames
-    }
-  };
 }
 
 // =============================================================================
@@ -677,12 +483,11 @@ function Decode(fPort, bytes) {
 
   var msgType = bytes[0];
 
-  // TULIP3 message types: 16-23 (0x10-0x17)
   if (msgType >= 16 && msgType <= 23) {
     if (bytes.length < 2) { return { error: 'Message too short' }; }
     switch (msgType) {
-      case 16: return decodeTULIP3Data(bytes);             // Periodic measurement
-      case 17: return decodeTULIP3Data(bytes);             // Alarm-triggered measurement
+      case 16: return decodeTULIP3Data(bytes);
+      case 17: return decodeTULIP3Data(bytes);
       case 18: return decodeTULIP3ProcessAlarm(bytes);
       case 19: return decodeTULIP3DeviceAlarm(bytes);
       case 20: return decodeTULIP3Identification(bytes);
@@ -693,16 +498,5 @@ function Decode(fPort, bytes) {
     }
   }
 
-  // TULIP2 message types: 1-10
-  switch (msgType) {
-    case 1:  return decodeTULIP2Data(bytes);               // Periodic measurement
-    case 2:  return decodeTULIP2Data(bytes);               // Alarm-triggered measurement
-    case 3:  return decodeTULIP2ProcessAlarm(bytes);
-    case 4:  return decodeTULIP2TechnicalAlarm(bytes);
-    case 5:  return decodeTULIP2DeviceAlarm(bytes);
-    case 7:  return decodeTULIP2Identification(bytes);
-    case 8:  return decodeTULIP2KeepAlive(bytes);
-    case 10: return decodeTULIP2ChannelFailureAlarm(bytes);
-    default: return { error: 'Unknown message type: ' + msgType, firstByte: msgType };
-  }
+  return { error: 'Unknown message type: ' + msgType, firstByte: msgType };
 }
