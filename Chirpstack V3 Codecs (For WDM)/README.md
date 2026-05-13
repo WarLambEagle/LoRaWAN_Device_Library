@@ -1,6 +1,5 @@
 Issues/Questions for Honeywell:
-  How can I use two different templates for differing payload sizes? I have 2 for the signal tester. 8 Bytes and 10 Bytes. It tries to put everything through the 8 byte template.
-
+  Is there a way to bypass the fixed payload size? THis can vary depending on the spreading factor. For example, the Wika Netris1 transmits its configuration information. If the SF is 8, all the information is sent in a single 45 byte message. If SF is 10 it sends multiple 8 byte messages.
 
 
 Running updates to the Dictionary file (dictionary.xml)
